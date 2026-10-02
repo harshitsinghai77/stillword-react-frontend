@@ -1,0 +1,6 @@
+{
+  "name": "Stillword",
+  "description": "A low-cortisol, distraction-free 750 words daily writing space. Clear your mind, build your streak, and write with zero friction.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
