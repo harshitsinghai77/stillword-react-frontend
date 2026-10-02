@@ -1,23 +1,8 @@
 import React from 'react';
 import { X, Sparkles, Flame, ArrowRight } from 'lucide-react';
-import { UserProfile, StreakStats } from '../types';
-import { THEMES } from '../utils/theme';
+import { THEMES } from '../utils/theme.js';
 
-interface CompletionModalProps {
-  user: UserProfile;
-  stats: StreakStats;
-  isOpen: boolean;
-  onClose: () => void;
-  onViewCalendar: () => void;
-}
-
-export const CompletionModal: React.FC<CompletionModalProps> = ({
-  user,
-  stats,
-  isOpen,
-  onClose,
-  onViewCalendar,
-}) => {
+export const CompletionModal = ({ user, stats, isOpen, onClose, onViewCalendar }) => {
   if (!isOpen) return null;
 
   const theme = THEMES[user.theme] || THEMES.oatmeal;
@@ -47,7 +32,6 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
           You emptied your thoughts and honored today's page. Take a slow breath. Your mind is clearer now.
         </p>
 
-        {/* Streak summary */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-200/50 dark:bg-stone-800 text-xs font-mono-numbers mb-6">
           <Flame className="w-4 h-4 text-amber-600 fill-amber-500" />
           <span className={`font-semibold ${theme.text}`}>{stats.currentStreak} Day Streak</span>
@@ -61,10 +45,7 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
             Keep Writing
           </button>
           <button
-            onClick={() => {
-              onClose();
-              onViewCalendar();
-            }}
+            onClick={() => { onClose(); onViewCalendar(); }}
             className={`w-full py-2 px-4 text-xs font-medium rounded-lg border ${theme.border} ${theme.textMuted} hover:${theme.text} transition-colors flex items-center justify-center gap-1.5`}
           >
             <span>View Streak Archive</span>

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { UserProfile, DayEntry, ThemeMode } from './types';
 import {
   loadUserProfile,
   saveUserProfile,
@@ -8,35 +7,32 @@ import {
   saveLocalEntries,
   calculateStreakStats,
   getTodayDateString,
-} from './utils/storage';
-import { THEMES } from './utils/theme';
-import { Header } from './components/Header';
-import { Editor } from './components/Editor';
-import { StreakCalendar } from './components/StreakCalendar';
-import { SyncModal } from './components/SyncModal';
-import { NameModal } from './components/NameModal';
-import { CompletionModal } from './components/CompletionModal';
+} from './utils/storage.js';
+import { THEMES } from './utils/theme.js';
+import { Header } from './components/Header.jsx';
+import { Editor } from './components/Editor.jsx';
+import { StreakCalendar } from './components/StreakCalendar.jsx';
+import { SyncModal } from './components/SyncModal.jsx';
+import { NameModal } from './components/NameModal.jsx';
+import { CompletionModal } from './components/CompletionModal.jsx';
 
 export default function App() {
-  const [user, setUser] = useState<UserProfile>(() => loadUserProfile());
-  const [entries, setEntries] = useState<Record<string, DayEntry>>(() => loadLocalEntries());
-  const [currentView, setCurrentView] = useState<'write' | 'calendar'>('write');
-  const [zenMode, setZenMode] = useState<boolean>(false);
+  const [user, setUser] = useState(() => loadUserProfile());
+  const [entries, setEntries] = useState(() => loadLocalEntries());
+  const [currentView, setCurrentView] = useState('write');
+  const [zenMode, setZenMode] = useState(false);
 
-  // Modals
-  const [syncModalOpen, setSyncModalOpen] = useState<boolean>(false);
-  const [nameModalOpen, setNameModalOpen] = useState<boolean>(false);
-  const [completionModalOpen, setCompletionModalOpen] = useState<boolean>(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [nameModalOpen, setNameModalOpen] = useState(false);
+  const [completionModalOpen, setCompletionModalOpen] = useState(false);
 
   const todayDate = useMemo(() => getTodayDateString(), []);
   const todayEntry = entries[todayDate] || null;
 
-  // Streak calculations
   const stats = useMemo(() => {
     return calculateStreakStats(entries, user.targetWords || 750);
   }, [entries, user.targetWords]);
 
-  // Sync with backend on mount
   useEffect(() => {
     if (!user.id) return;
     fetch(`/api/sync/${user.id}`)
@@ -45,7 +41,7 @@ export default function App() {
         if (data && Array.isArray(data.entries) && data.entries.length > 0) {
           setEntries((prev) => {
             const merged = { ...prev };
-            data.entries.forEach((remote: DayEntry) => {
+            data.entries.forEach((remote) => {
               if (
                 !merged[remote.date] ||
                 new Date(remote.updatedAt) > new Date(merged[remote.date].updatedAt || 0)
@@ -58,12 +54,9 @@ export default function App() {
           });
         }
       })
-      .catch(() => {
-        // Safe offline fallback
-      });
+      .catch(() => {});
   }, [user.id]);
 
-  // First time prompt for name if not set
   useEffect(() => {
     const hasSeenPrompt = localStorage.getItem('stillword_name_prompted');
     if (!user.name && !hasSeenPrompt) {
@@ -72,40 +65,24 @@ export default function App() {
     }
   }, [user.name]);
 
-  // Keyboard shortcut for Zen mode (Esc exits zen mode)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && zenMode) {
-        setZenMode(false);
-      }
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && zenMode) setZenMode(false);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [zenMode]);
 
-  // Handle Saving Today's Writing
   const handleSaveContent = useCallback(
-    (newContent: string) => {
-      const { entry } = saveSingleEntry(
-        user.id,
-        todayDate,
-        newContent,
-        user.targetWords || 750
-      );
-      setEntries((prev) => ({
-        ...prev,
-        [todayDate]: entry,
-      }));
+    (newContent) => {
+      const { entry } = saveSingleEntry(user.id, todayDate, newContent, user.targetWords || 750);
+      setEntries((prev) => ({ ...prev, [todayDate]: entry }));
     },
     [user.id, todayDate, user.targetWords]
   );
 
-  // Handle Goal Reached
-  const handleGoalReached = useCallback(() => {
-    setCompletionModalOpen(true);
-  }, []);
+  const handleGoalReached = useCallback(() => setCompletionModalOpen(true), []);
 
-  // Handle Sound Toggle
   const handleToggleSound = useCallback(() => {
     setUser((prev) => {
       const updated = { ...prev, soundEnabled: !prev.soundEnabled };
@@ -114,9 +91,8 @@ export default function App() {
     });
   }, []);
 
-  // Handle Theme Toggle
   const handleToggleTheme = useCallback(() => {
-    const themes: ThemeMode[] = ['oatmeal', 'sage', 'ink', 'pure'];
+    const themes = ['oatmeal', 'sage', 'ink', 'pure'];
     setUser((prev) => {
       const currIdx = themes.indexOf(prev.theme);
       const nextTheme = themes[(currIdx + 1) % themes.length];
@@ -126,8 +102,7 @@ export default function App() {
     });
   }, []);
 
-  // Handle Name Save
-  const handleSaveName = useCallback((name: string) => {
+  const handleSaveName = useCallback((name) => {
     setUser((prev) => {
       const updated = { ...prev, name };
       saveUserProfile(updated);
@@ -135,27 +110,21 @@ export default function App() {
     });
   }, []);
 
-  // Handle Login / Cloud Sync Success
-  const handleLoginSuccess = useCallback((updatedUser: UserProfile, remoteEntries: DayEntry[]) => {
+  const handleLoginSuccess = useCallback((updatedUser, remoteEntries) => {
     setUser(updatedUser);
     saveUserProfile(updatedUser);
-
     setEntries((prev) => {
       const merged = { ...prev };
-      remoteEntries.forEach((r) => {
-        merged[r.date] = r;
-      });
+      remoteEntries.forEach((r) => { merged[r.date] = r; });
       saveLocalEntries(merged);
       return merged;
     });
   }, []);
 
-  // Handle Sign Out
   const handleLogout = useCallback(() => {
-    // Generate new guest ID
     const guestId = 'guest_' + Math.random().toString(36).substring(2, 10) + Date.now();
     localStorage.setItem('stillword_guest_uuid_v1', guestId);
-    const guestUser: UserProfile = {
+    const guestUser = {
       id: guestId,
       name: '',
       isRegistered: false,
@@ -174,7 +143,6 @@ export default function App() {
     <div
       className={`min-h-screen flex flex-col ${activeTheme.canvas} ${activeTheme.text} transition-colors duration-300 font-sans selection:bg-amber-200/50 selection:text-stone-900`}
     >
-      {/* Top Header */}
       <Header
         user={user}
         stats={stats}
@@ -188,7 +156,6 @@ export default function App() {
         onToggleZen={() => setZenMode((prev) => !prev)}
       />
 
-      {/* Main Viewport */}
       {currentView === 'write' ? (
         <Editor
           user={user}
@@ -206,14 +173,11 @@ export default function App() {
           stats={stats}
           entries={entries}
           onSelectDateToEdit={(date) => {
-            if (date === todayDate) {
-              setCurrentView('write');
-            }
+            if (date === todayDate) setCurrentView('write');
           }}
         />
       )}
 
-      {/* Modals */}
       <SyncModal
         user={user}
         isOpen={syncModalOpen}

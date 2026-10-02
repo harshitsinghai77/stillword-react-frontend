@@ -1,38 +1,21 @@
 import React, { useState } from 'react';
-import { X, Cloud, Lock, Mail, ArrowRight, ShieldCheck, Download, LogOut, CheckCircle2 } from 'lucide-react';
-import { UserProfile, DayEntry } from '../types';
-import { THEMES } from '../utils/theme';
+import { X, Cloud, Lock, Mail, ArrowRight, Download, LogOut, CheckCircle2 } from 'lucide-react';
+import { THEMES } from '../utils/theme.js';
 
-interface SyncModalProps {
-  user: UserProfile;
-  isOpen: boolean;
-  onClose: () => void;
-  onLoginSuccess: (user: UserProfile, remoteEntries: DayEntry[]) => void;
-  onLogout: () => void;
-  localEntries: Record<string, DayEntry>;
-}
-
-export const SyncModal: React.FC<SyncModalProps> = ({
-  user,
-  isOpen,
-  onClose,
-  onLoginSuccess,
-  onLogout,
-  localEntries,
-}) => {
-  const [mode, setMode] = useState<'signin' | 'register'>('register');
+export const SyncModal = ({ user, isOpen, onClose, onLoginSuccess, onLogout, localEntries }) => {
+  const [mode, setMode] = useState('register');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState(user.name || '');
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   if (!isOpen) return null;
 
   const theme = THEMES[user.theme] || THEMES.oatmeal;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       setErrorMsg('Please enter both email and password.');
@@ -58,38 +41,25 @@ export const SyncModal: React.FC<SyncModalProps> = ({
       });
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Authentication failed');
-      }
+      if (!res.ok) throw new Error(data.error || 'Authentication failed');
 
       setSuccessMsg(mode === 'register' ? 'Account created and synced!' : 'Signed in successfully!');
       setTimeout(() => {
         onLoginSuccess(
-          {
-            ...user,
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.name || user.name,
-            isRegistered: true,
-          },
+          { ...user, id: data.user.id, email: data.user.email, name: data.user.name || user.name, isRegistered: true },
           data.entries || []
         );
         onClose();
       }, 700);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Connection error. Please try again.';
-      setErrorMsg(msg);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleExportBackup = () => {
-    const data = {
-      profile: user,
-      entries: localEntries,
-      exportedAt: new Date().toISOString(),
-    };
+    const data = { profile: user, entries: localEntries, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -112,7 +82,6 @@ export const SyncModal: React.FC<SyncModalProps> = ({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Modal Header */}
         <div className="mb-5">
           <div className="w-8 h-8 rounded-full bg-stone-200/60 dark:bg-stone-800 flex items-center justify-center mb-3">
             <Cloud className="w-4 h-4 text-stone-700 dark:text-stone-300" />
@@ -132,7 +101,6 @@ export const SyncModal: React.FC<SyncModalProps> = ({
           </p>
         </div>
 
-        {/* Already Registered View */}
         {user.isRegistered ? (
           <div className="space-y-4">
             <div className="p-3.5 rounded-lg border border-emerald-300/40 bg-emerald-50/40 dark:bg-emerald-950/20 text-xs flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300">
@@ -150,10 +118,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({
               </button>
 
               <button
-                onClick={() => {
-                  onLogout();
-                  onClose();
-                }}
+                onClick={() => { onLogout(); onClose(); }}
                 className="w-full py-2 px-3 text-xs font-medium rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center gap-2 transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -162,9 +127,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({
             </div>
           </div>
         ) : (
-          /* Sign In / Register Form */
           <div>
-            {/* Segmented Tab Controls */}
             <div className="flex items-center gap-1 p-1 bg-stone-200/50 dark:bg-stone-800/60 rounded-lg mb-4 text-xs font-medium">
               <button
                 type="button"
@@ -187,14 +150,10 @@ export const SyncModal: React.FC<SyncModalProps> = ({
             </div>
 
             {errorMsg && (
-              <div className="mb-3 p-2.5 rounded-md bg-rose-50 text-rose-700 text-xs border border-rose-200">
-                {errorMsg}
-              </div>
+              <div className="mb-3 p-2.5 rounded-md bg-rose-50 text-rose-700 text-xs border border-rose-200">{errorMsg}</div>
             )}
             {successMsg && (
-              <div className="mb-3 p-2.5 rounded-md bg-emerald-50 text-emerald-700 text-xs border border-emerald-200">
-                {successMsg}
-              </div>
+              <div className="mb-3 p-2.5 rounded-md bg-emerald-50 text-emerald-700 text-xs border border-emerald-200">{successMsg}</div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-3">
@@ -267,11 +226,7 @@ export const SyncModal: React.FC<SyncModalProps> = ({
 
             <div className="mt-4 pt-4 border-t border-stone-200/50 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-400">
               <span>Device ID: {user.id.slice(0, 14)}...</span>
-              <button
-                type="button"
-                onClick={handleExportBackup}
-                className="hover:underline flex items-center gap-1"
-              >
+              <button type="button" onClick={handleExportBackup} className="hover:underline flex items-center gap-1">
                 <Download className="w-3 h-3" /> Export JSON
               </button>
             </div>

@@ -1,26 +1,4 @@
-import { ThemeMode } from '../types';
-
-export interface ThemeStyles {
-  canvas: string;
-  surface: string;
-  surfaceHover: string;
-  border: string;
-  text: string;
-  textMuted: string;
-  textSubtle: string;
-  accent: string;
-  accentHover: string;
-  progressFill: string;
-  progressBg: string;
-  boxEmpty: string;
-  boxPartial: string;
-  boxDone: string;
-  boxTodayRing: string;
-  editorPaper: string;
-  name: string;
-}
-
-export const THEMES: Record<ThemeMode, ThemeStyles> = {
+export const THEMES = {
   oatmeal: {
     name: 'Oatmeal Paper',
     canvas: 'bg-[#FBF9F4]',

@@ -1,23 +1,11 @@
-import React, { useState, useEffect, useRef, useTransition } from 'react';
-import { Copy, Check, Sparkles, ChevronRight, Download, Edit3 } from 'lucide-react';
-import { UserProfile, DayEntry, StreakStats } from '../types';
-import { THEMES } from '../utils/theme';
-import { countWords, formatDatePretty, getTimeGreeting } from '../utils/storage';
-import { playSoftKeyClick, playGoalChime } from '../utils/sound';
-import { getRandomPrompt } from '../utils/prompts';
+import React, { useState, useEffect, useRef } from 'react';
+import { Copy, Check, Sparkles, Download, Edit3 } from 'lucide-react';
+import { THEMES } from '../utils/theme.js';
+import { countWords, formatDatePretty, getTimeGreeting } from '../utils/storage.js';
+import { playSoftKeyClick, playGoalChime } from '../utils/sound.js';
+import { getRandomPrompt } from '../utils/prompts.js';
 
-interface EditorProps {
-  user: UserProfile;
-  stats: StreakStats;
-  todayDate: string;
-  entry: DayEntry | null;
-  onSaveContent: (content: string) => void;
-  onOpenNameModal: () => void;
-  zenMode: boolean;
-  onGoalReached: () => void;
-}
-
-export const Editor: React.FC<EditorProps> = ({
+export const Editor = ({
   user,
   stats,
   todayDate,
@@ -27,16 +15,16 @@ export const Editor: React.FC<EditorProps> = ({
   zenMode,
   onGoalReached,
 }) => {
-  const [content, setContent] = useState<string>(entry?.content || '');
-  const [copied, setCopied] = useState<boolean>(false);
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
-  const [activePrompt, setActivePrompt] = useState<string | null>(null);
-  const [isTypingRecently, setIsTypingRecently] = useState<boolean>(false);
+  const [content, setContent] = useState(entry?.content || '');
+  const [copied, setCopied] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const [activePrompt, setActivePrompt] = useState(null);
+  const [isTypingRecently, setIsTypingRecently] = useState(false);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const saveTimeoutRef = useRef<number | null>(null);
-  const typingTimerRef = useRef<number | null>(null);
-  const hasTriggeredChimeToday = useRef<boolean>(entry?.completed || false);
+  const textareaRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
+  const typingTimerRef = useRef(null);
+  const hasTriggeredChimeToday = useRef(entry?.completed || false);
 
   const theme = THEMES[user.theme] || THEMES.oatmeal;
   const wordCount = countWords(content);
@@ -44,45 +32,31 @@ export const Editor: React.FC<EditorProps> = ({
   const progressPercent = Math.min(100, Math.round((wordCount / targetWords) * 100));
   const isTargetMet = wordCount >= targetWords;
 
-  // Sync external entry changes (e.g. if loaded from remote)
   useEffect(() => {
     if (entry && entry.content !== content && !textareaRef.current?.matches(':focus')) {
       setContent(entry.content);
-      if (entry.completed) {
-        hasTriggeredChimeToday.current = true;
-      }
+      if (entry.completed) hasTriggeredChimeToday.current = true;
     }
   }, [entry?.id]);
 
-  // Handle Text Change
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleChange = (e) => {
     const nextVal = e.target.value;
     setContent(nextVal);
     setSaveStatus('saving');
 
-    // Soft audio click
-    if (user.soundEnabled) {
-      playSoftKeyClick();
-    }
+    if (user.soundEnabled) playSoftKeyClick();
 
-    // Typing dim indicator
     setIsTypingRecently(true);
     if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = window.setTimeout(() => {
-      setIsTypingRecently(false);
-    }, 2500);
+    typingTimerRef.current = window.setTimeout(() => setIsTypingRecently(false), 2500);
 
-    // Goal reached detection
     const nextWordCount = countWords(nextVal);
     if (nextWordCount >= targetWords && !hasTriggeredChimeToday.current) {
       hasTriggeredChimeToday.current = true;
-      if (user.soundEnabled) {
-        playGoalChime();
-      }
+      if (user.soundEnabled) playGoalChime();
       onGoalReached();
     }
 
-    // Debounce save to storage & sync
     if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = window.setTimeout(() => {
       onSaveContent(nextVal);
@@ -91,7 +65,6 @@ export const Editor: React.FC<EditorProps> = ({
     }, 400);
   };
 
-  // Adjust textarea height automatically
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -100,7 +73,6 @@ export const Editor: React.FC<EditorProps> = ({
     }
   }, [content]);
 
-  // Copy to clipboard
   const handleCopy = () => {
     if (!content) return;
     navigator.clipboard.writeText(content);
@@ -108,7 +80,6 @@ export const Editor: React.FC<EditorProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Download as text file
   const handleDownload = () => {
     if (!content) return;
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -126,7 +97,6 @@ export const Editor: React.FC<EditorProps> = ({
   return (
     <main className="w-full flex-1 flex flex-col justify-between max-w-3xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
       <div className="w-full flex-1 flex flex-col">
-        {/* Header Greeting Zone */}
         <section
           className={`mb-8 sm:mb-12 transition-opacity duration-500 ${
             zenMode && isTypingRecently ? 'opacity-10' : 'opacity-100'
@@ -164,13 +134,9 @@ export const Editor: React.FC<EditorProps> = ({
               </div>
             </div>
 
-            {/* Mindful spark prompt button */}
             <div className="shrink-0">
               <button
-                onClick={() => {
-                  const prompt = getRandomPrompt();
-                  setActivePrompt(prompt);
-                }}
+                onClick={() => setActivePrompt(getRandomPrompt())}
                 className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border ${theme.border} ${theme.textMuted} hover:${theme.text} hover:${theme.surface} transition-colors`}
                 title="A mindful question to inspire today's thoughts"
               >
@@ -180,16 +146,13 @@ export const Editor: React.FC<EditorProps> = ({
             </div>
           </div>
 
-          {/* Active Prompt Box */}
           {activePrompt && (
             <div
               className={`mt-4 p-3.5 rounded-lg border ${theme.border} ${theme.surface} text-sm flex items-start justify-between gap-3 animate-fadeIn`}
             >
               <div className="flex items-start gap-2">
-                <span className="text-amber-600/80 font-serif-writing italic font-semibold">“</span>
-                <p className={`font-serif-writing text-[15px] italic ${theme.text}`}>
-                  {activePrompt}
-                </p>
+                <span className="text-amber-600/80 font-serif-writing italic font-semibold">"</span>
+                <p className={`font-serif-writing text-[15px] italic ${theme.text}`}>{activePrompt}</p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <button
@@ -211,7 +174,6 @@ export const Editor: React.FC<EditorProps> = ({
           )}
         </section>
 
-        {/* Pure Writing Surface */}
         <section className="w-full flex-1 flex flex-col mb-12">
           <textarea
             ref={textareaRef}
@@ -226,7 +188,6 @@ export const Editor: React.FC<EditorProps> = ({
         </section>
       </div>
 
-      {/* Bottom Floating Zen Bar / Progress Bar */}
       <footer
         className={`sticky bottom-4 w-full transition-opacity duration-300 ${
           zenMode && isTypingRecently ? 'opacity-20 hover:opacity-100' : 'opacity-100'
@@ -235,7 +196,6 @@ export const Editor: React.FC<EditorProps> = ({
         <div
           className={`w-full max-w-xl mx-auto backdrop-blur-md rounded-xl p-3 sm:p-3.5 border ${theme.border} ${theme.surface}/90 shadow-sm`}
         >
-          {/* Progress Bar Track */}
           <div className="w-full h-1.5 rounded-full overflow-hidden mb-2.5 relative bg-stone-200/60 dark:bg-stone-800">
             <div
               className={`h-full transition-all duration-300 rounded-full ${
@@ -243,15 +203,10 @@ export const Editor: React.FC<EditorProps> = ({
               }`}
               style={{ width: `${progressPercent}%` }}
             />
-            {/* 750 words notch */}
-            <div
-              className="absolute top-0 bottom-0 right-0 w-0.5 bg-stone-400/40"
-              title="750 words goal"
-            />
+            <div className="absolute top-0 bottom-0 right-0 w-0.5 bg-stone-400/40" title="750 words goal" />
           </div>
 
           <div className="flex items-center justify-between text-xs font-mono-numbers">
-            {/* Word Count Metric */}
             <div className="flex items-center gap-2">
               <span className={`font-semibold ${isTargetMet ? 'text-emerald-600' : theme.text}`}>
                 {wordCount}
@@ -270,7 +225,6 @@ export const Editor: React.FC<EditorProps> = ({
               )}
             </div>
 
-            {/* Autosave status & Utilities */}
             <div className="flex items-center gap-3 font-sans">
               {saveStatus === 'saved' && (
                 <span className="text-[11px] text-stone-400 flex items-center gap-1 transition-opacity">
@@ -281,7 +235,6 @@ export const Editor: React.FC<EditorProps> = ({
                 <span className="text-[11px] text-stone-400 animate-soft-pulse">Saving...</span>
               )}
 
-              {/* Copy button */}
               <button
                 onClick={handleCopy}
                 disabled={!content}
@@ -291,7 +244,6 @@ export const Editor: React.FC<EditorProps> = ({
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
 
-              {/* Download button */}
               <button
                 onClick={handleDownload}
                 disabled={!content}

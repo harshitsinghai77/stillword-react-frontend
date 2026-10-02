@@ -1,22 +1,8 @@
 import React from 'react';
-import { Flame, Volume2, VolumeX, Maximize2, Minimize2, Calendar, PenLine, Cloud, CloudCheck, Sparkles } from 'lucide-react';
-import { UserProfile, StreakStats, ThemeMode } from '../types';
-import { THEMES } from '../utils/theme';
+import { Flame, Volume2, VolumeX, Maximize2, Minimize2, Calendar, PenLine, Cloud, CloudCheck } from 'lucide-react';
+import { THEMES } from '../utils/theme.js';
 
-interface HeaderProps {
-  user: UserProfile;
-  stats: StreakStats;
-  currentView: 'write' | 'calendar';
-  onViewChange: (view: 'write' | 'calendar') => void;
-  onOpenSync: () => void;
-  onOpenNameModal: () => void;
-  onToggleSound: () => void;
-  onToggleTheme: () => void;
-  zenMode: boolean;
-  onToggleZen: () => void;
-}
-
-export const Header: React.FC<HeaderProps> = ({
+export const Header = ({
   user,
   stats,
   currentView,
@@ -37,7 +23,6 @@ export const Header: React.FC<HeaderProps> = ({
       }`}
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
-        {/* Zone 1: Single text element wordmark */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => onViewChange('write')}
@@ -47,7 +32,6 @@ export const Header: React.FC<HeaderProps> = ({
             Stillword
           </button>
 
-          {/* Quick Streak Pill - Clean & unboxed */}
           <button
             onClick={() => onViewChange('calendar')}
             className={`hidden sm:flex items-center gap-1.5 text-xs font-mono-numbers px-2.5 py-1 rounded-md border ${
@@ -75,7 +59,6 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
-        {/* Zone 2: View Switchers & Zen */}
         <nav className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={() => onViewChange('write')}
@@ -102,9 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: Actions & Settings */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Sound Toggle */}
           <button
             onClick={onToggleSound}
             aria-label={user.soundEnabled ? 'Disable typing sound' : 'Enable typing sound'}
@@ -118,7 +99,6 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          {/* Theme Palette Toggle */}
           <button
             onClick={onToggleTheme}
             aria-label="Change color theme"
@@ -129,7 +109,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{theme.name.split(' ')[0]}</span>
           </button>
 
-          {/* Fullscreen / Zen Toggle */}
           <button
             onClick={onToggleZen}
             aria-label={zenMode ? 'Exit Zen Mode' : 'Enter Zen Mode'}
@@ -139,7 +118,6 @@ export const Header: React.FC<HeaderProps> = ({
             {zenMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
 
-          {/* Cloud Sync / Account Button */}
           <button
             onClick={onOpenSync}
             className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border ${

@@ -1,4 +1,4 @@
-export const LOW_CORTISOL_PROMPTS: string[] = [
+export const LOW_CORTISOL_PROMPTS = [
   "What is occupying your thoughts right now? Write it without judgment.",
   "Describe the space you are sitting in, the temperature, and the sounds around you.",
   "What is one thing that went better than expected yesterday?",
@@ -23,10 +23,9 @@ export const LOW_CORTISOL_PROMPTS: string[] = [
   "What would you tell your yesterday self if you could send a one-sentence note?",
   "Write freely about the physical sensations of your breath and hands right now.",
   "What is a boundary you need to protect or communicate this week?",
-  "If you didn't have to prove anything to anyone today, what would you do?"
+  "If you didn't have to prove anything to anyone today, what would you do?",
 ];
 
-export function getRandomPrompt(): string {
-  const index = Math.floor(Math.random() * LOW_CORTISOL_PROMPTS.length);
-  return LOW_CORTISOL_PROMPTS[index];
+export function getRandomPrompt() {
+  return LOW_CORTISOL_PROMPTS[Math.floor(Math.random() * LOW_CORTISOL_PROMPTS.length)];
 }

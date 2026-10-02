@@ -1,22 +1,13 @@
-// Whisper-soft mechanical typewriter / paper keystroke audio synthesis using Web Audio API.
-// 100% client-side, zero external files, low latency.
+let audioCtx = null;
 
-let audioCtx: AudioContext | null = null;
-
-function getAudioContext(): AudioContext | null {
+function getAudioContext() {
   if (typeof window === 'undefined') return null;
   try {
     if (!audioCtx) {
-      const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioContextClass) {
-        audioCtx = new AudioContextClass();
-      }
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
     }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     return audioCtx;
   } catch {
     return null;
@@ -29,9 +20,7 @@ export function playSoftKeyClick() {
 
   try {
     const now = ctx.currentTime;
-
-    // Create a tiny burst of soft noise for subtle physical tactile feeling
-    const bufferSize = ctx.sampleRate * 0.018; // 18ms buffer
+    const bufferSize = ctx.sampleRate * 0.018;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
 
@@ -58,9 +47,7 @@ export function playSoftKeyClick() {
 
     noise.start(now);
     noise.stop(now + 0.018);
-  } catch {
-    // Ignore audio glitches safely
-  }
+  } catch {}
 }
 
 export function playGoalChime() {
@@ -70,9 +57,9 @@ export function playGoalChime() {
   try {
     const now = ctx.currentTime;
     const tones = [
-      { freq: 523.25, time: now, duration: 1.2, gain: 0.06 },       // C5
-      { freq: 659.25, time: now + 0.14, duration: 1.4, gain: 0.07 }, // E5
-      { freq: 783.99, time: now + 0.28, duration: 2.0, gain: 0.08 }, // G5
+      { freq: 523.25, time: now, duration: 1.2, gain: 0.06 },
+      { freq: 659.25, time: now + 0.14, duration: 1.4, gain: 0.07 },
+      { freq: 783.99, time: now + 0.28, duration: 2.0, gain: 0.08 },
     ];
 
     tones.forEach(({ freq, time, duration, gain }) => {
@@ -81,7 +68,6 @@ export function playGoalChime() {
 
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, time);
-
       gainNode.gain.setValueAtTime(0.0001, time);
       gainNode.gain.exponentialRampToValueAtTime(gain, time + 0.04);
       gainNode.gain.exponentialRampToValueAtTime(0.00001, time + duration);
@@ -92,7 +78,5 @@ export function playGoalChime() {
       osc.start(time);
       osc.stop(time + duration);
     });
-  } catch {
-    // Ignore
-  }
+  } catch {}
 }

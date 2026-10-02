@@ -1,28 +1,15 @@
 import React, { useState } from 'react';
 import { X, User } from 'lucide-react';
-import { UserProfile } from '../types';
-import { THEMES } from '../utils/theme';
+import { THEMES } from '../utils/theme.js';
 
-interface NameModalProps {
-  user: UserProfile;
-  isOpen: boolean;
-  onClose: () => void;
-  onSaveName: (name: string) => void;
-}
-
-export const NameModal: React.FC<NameModalProps> = ({
-  user,
-  isOpen,
-  onClose,
-  onSaveName,
-}) => {
+export const NameModal = ({ user, isOpen, onClose, onSaveName }) => {
   const [name, setName] = useState(user.name || '');
 
   if (!isOpen) return null;
 
   const theme = THEMES[user.theme] || THEMES.oatmeal;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     onSaveName(name.trim());
     onClose();
