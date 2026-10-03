@@ -2,6 +2,8 @@
 
 A free and open source alternative to [750words.com](https://750words.com) — a minimal daily writing app focused on helping you build a consistent writing habit.
 
+**[→ Try it live at stillword-app.netlify.app](https://stillword-app.netlify.app/)**
+
 ---
 
 ## What is Stillword?
