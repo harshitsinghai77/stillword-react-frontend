@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Cloud, Lock, Mail, ArrowRight, Download, LogOut, CheckCircle2 } from 'lucide-react';
 import { THEMES } from '../utils/theme.js';
+import { LAMBDA_URL } from '../utils/storage.js';
 
 export const SyncModal = ({ user, isOpen, onClose, onLoginSuccess, onLogout, localEntries }) => {
   const [mode, setMode] = useState('register');
@@ -27,7 +28,9 @@ export const SyncModal = ({ user, isOpen, onClose, onLoginSuccess, onLogout, loc
     setSuccessMsg(null);
 
     try {
-      const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const endpoint = mode === 'register'
+        ? `${LAMBDA_URL}/auth/register`
+        : `${LAMBDA_URL}/auth/login`;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,7 +219,7 @@ export const SyncModal = ({ user, isOpen, onClose, onLoginSuccess, onLogout, loc
                     <span>Syncing...</span>
                   ) : (
                     <>
-                      <span>{mode === 'register' ? 'Save & Sync to Cloud' : 'Sign In and Fetch Archive'}</span>
+                      <span>{mode === 'register' ? 'Save & Sync to Cloud' : 'Sign In'}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </>
                   )}

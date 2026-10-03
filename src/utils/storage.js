@@ -4,6 +4,10 @@ const STORAGE_KEY_ENTRIES = 'stillword_entries_v1';
 const STORAGE_KEY_THEME = 'stillword_theme_v1';
 const STORAGE_KEY_SOUND = 'stillword_sound_v1';
 
+// Set this to your Lambda Function URL after deployment
+// e.g. 'https://xxxxxxxxxxxx.lambda-url.us-east-1.on.aws'
+export const LAMBDA_URL = import.meta.env.VITE_LAMBDA_URL || '';
+
 export function getTodayDateString() {
   const d = new Date();
   const year = d.getFullYear();
@@ -117,10 +121,18 @@ export function saveUserProfile(user) {
   localStorage.setItem(STORAGE_KEY_THEME, user.theme);
   localStorage.setItem(STORAGE_KEY_SOUND, String(user.soundEnabled));
 
-  fetch('/api/user/profile', {
+  // Only sync to Lambda for registered users
+  if (!user.isRegistered || !LAMBDA_URL) return;
+
+  fetch(`${LAMBDA_URL}/user/profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId: user.id, name: user.name, targetWords: user.targetWords, theme: user.theme }),
+    body: JSON.stringify({
+      email: user.email,
+      name: user.name,
+      targetWords: user.targetWords,
+      theme: user.theme,
+    }),
   }).catch(() => {});
 }
 
@@ -141,7 +153,7 @@ export function saveLocalEntries(entries) {
 export function saveSingleEntry(userId, date, content, targetWords = 750) {
   const entries = loadLocalEntries();
   const wordCount = countWords(content);
-  const completed = wordCount >= targetWords;
+  const completed = wordCount > 0;
   const existing = entries[date];
   const newlyCompleted = completed && (!existing || !existing.completed);
 
@@ -158,21 +170,23 @@ export function saveSingleEntry(userId, date, content, targetWords = 750) {
 
   entries[date] = entry;
   saveLocalEntries(entries);
+  return { entry, newlyCompleted };
+}
 
-  fetch('/api/sync', {
+export function syncEntryToCloud(userId, entry) {
+  if (!LAMBDA_URL) return Promise.resolve();
+  return fetch(`${LAMBDA_URL}/entry`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, entry }),
-  }).catch(() => {});
-
-  return { entry, newlyCompleted };
+  });
 }
 
 export function calculateStreakStats(entries, targetWords = 750) {
   const today = getTodayDateString();
   const todayEntry = entries[today];
   const todayWordCount = todayEntry ? todayEntry.wordCount : 0;
-  const todayCompleted = todayEntry ? todayEntry.completed || todayWordCount >= targetWords : false;
+  const todayCompleted = todayEntry ? todayEntry.completed || todayWordCount > 0 : false;
 
   let totalWords = 0;
   let daysCompleted = 0;
@@ -180,7 +194,7 @@ export function calculateStreakStats(entries, targetWords = 750) {
 
   Object.values(entries).forEach((e) => {
     totalWords += e.wordCount;
-    if (e.completed || e.wordCount >= targetWords) {
+    if (e.completed || e.wordCount > 0) {
       completedDates.add(e.date);
       daysCompleted++;
     }

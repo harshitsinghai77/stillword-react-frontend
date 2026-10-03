@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   loadUserProfile,
   saveUserProfile,
   loadLocalEntries,
   saveSingleEntry,
+  syncEntryToCloud,
   saveLocalEntries,
   calculateStreakStats,
   getTodayDateString,
+  LAMBDA_URL,
 } from './utils/storage.js';
 import { THEMES } from './utils/theme.js';
 import { Header } from './components/Header.jsx';
@@ -33,29 +35,42 @@ export default function App() {
     return calculateStreakStats(entries, user.targetWords || 750);
   }, [entries, user.targetWords]);
 
+  // On mount, if registered, fetch all entry metadata + today's content from cloud
   useEffect(() => {
-    if (!user.id) return;
-    fetch(`/api/sync/${user.id}`)
+    if (!user.isRegistered || !LAMBDA_URL) return;
+
+    fetch(`${LAMBDA_URL}/entries/${user.id}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && Array.isArray(data.entries) && data.entries.length > 0) {
-          setEntries((prev) => {
-            const merged = { ...prev };
-            data.entries.forEach((remote) => {
-              if (
-                !merged[remote.date] ||
-                new Date(remote.updatedAt) > new Date(merged[remote.date].updatedAt || 0)
-              ) {
-                merged[remote.date] = remote;
-              }
-            });
-            saveLocalEntries(merged);
-            return merged;
+        if (!data || !Array.isArray(data.entries)) return;
+        setEntries((prev) => {
+          const merged = { ...prev };
+          data.entries.forEach((remote) => {
+            const local = merged[remote.date];
+            merged[remote.date] = { ...local, ...remote, content: local?.content || '' };
           });
+          saveLocalEntries(merged);
+          return merged;
+        });
+
+        // Always fetch today's content from S3 — cloud is source of truth on refresh
+        const todayRemote = data.entries.find((e) => e.date === todayDate);
+        if (todayRemote) {
+          fetch(`${LAMBDA_URL}/entry/${user.id}/${todayDate}`)
+            .then((res) => (res.ok ? res.json() : null))
+            .then((entry) => {
+              if (!entry) return;
+              setEntries((prev) => {
+                const updated = { ...prev, [todayDate]: { ...prev[todayDate], ...entry } };
+                saveLocalEntries(updated);
+                return updated;
+              });
+            })
+            .catch(() => {});
         }
       })
       .catch(() => {});
-  }, [user.id]);
+  }, [user.isRegistered, user.id]);
 
   useEffect(() => {
     const hasSeenPrompt = localStorage.getItem('stillword_name_prompted');
@@ -73,13 +88,32 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [zenMode]);
 
+  const lastSyncedWordCount = useRef(todayEntry?.wordCount || 0);
+
   const handleSaveContent = useCallback(
     (newContent) => {
       const { entry } = saveSingleEntry(user.id, todayDate, newContent, user.targetWords || 750);
       setEntries((prev) => ({ ...prev, [todayDate]: entry }));
+
+      if (user.isRegistered && LAMBDA_URL) {
+        const milestone = Math.floor(entry.wordCount / 100);
+        const lastMilestone = Math.floor(lastSyncedWordCount.current / 100);
+        if (milestone > lastMilestone) {
+          lastSyncedWordCount.current = entry.wordCount;
+          syncEntryToCloud(user.id, entry).catch(() => {});
+        }
+      }
     },
-    [user.id, todayDate, user.targetWords]
+    [user.id, todayDate, user.targetWords, user.isRegistered]
   );
+
+  const handleManualSync = useCallback(() => {
+    if (!user.isRegistered || !LAMBDA_URL) return Promise.resolve();
+    const entry = entries[todayDate];
+    if (!entry) return Promise.resolve();
+    lastSyncedWordCount.current = entry.wordCount;
+    return syncEntryToCloud(user.id, entry);
+  }, [user.id, user.isRegistered, entries, todayDate]);
 
   const handleGoalReached = useCallback(() => setCompletionModalOpen(true), []);
 
@@ -163,6 +197,7 @@ export default function App() {
           todayDate={todayDate}
           entry={todayEntry}
           onSaveContent={handleSaveContent}
+          onSync={handleManualSync}
           onOpenNameModal={() => setNameModalOpen(true)}
           zenMode={zenMode}
           onGoalReached={handleGoalReached}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Copy, Check, Sparkles, Download, Edit3 } from 'lucide-react';
+import { Copy, Check, Sparkles, Download, Edit3, CloudUpload } from 'lucide-react';
 import { THEMES } from '../utils/theme.js';
 import { countWords, formatDatePretty, getTimeGreeting } from '../utils/storage.js';
 import { playSoftKeyClick, playGoalChime } from '../utils/sound.js';
@@ -11,6 +11,7 @@ export const Editor = ({
   todayDate,
   entry,
   onSaveContent,
+  onSync,
   onOpenNameModal,
   zenMode,
   onGoalReached,
@@ -18,6 +19,7 @@ export const Editor = ({
   const [content, setContent] = useState(entry?.content || '');
   const [copied, setCopied] = useState(false);
   const [saveStatus, setSaveStatus] = useState('idle');
+  const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'synced'
   const [activePrompt, setActivePrompt] = useState(null);
   const [isTypingRecently, setIsTypingRecently] = useState(false);
 
@@ -72,6 +74,18 @@ export const Editor = ({
       textareaRef.current.style.height = `${Math.max(scrollH, 360)}px`;
     }
   }, [content]);
+
+  const handleSync = async () => {
+    if (!onSync || syncStatus === 'syncing') return;
+    setSyncStatus('syncing');
+    try {
+      await onSync();
+      setSyncStatus('synced');
+      setTimeout(() => setSyncStatus('idle'), 2000);
+    } catch {
+      setSyncStatus('idle');
+    }
+  };
 
   const handleCopy = () => {
     if (!content) return;
@@ -252,6 +266,26 @@ export const Editor = ({
               >
                 <Download className="w-3.5 h-3.5" />
               </button>
+
+              {user.isRegistered && (
+                <button
+                  onClick={handleSync}
+                  disabled={!content || syncStatus === 'syncing'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 ${
+                    syncStatus === 'synced'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+                      : `border ${theme.border} ${theme.textMuted} hover:${theme.text} hover:${theme.surface}`
+                  }`}
+                >
+                  {syncStatus === 'synced' ? (
+                    <><Check className="w-3.5 h-3.5" /> Synced</>
+                  ) : syncStatus === 'syncing' ? (
+                    <><CloudUpload className="w-3.5 h-3.5 animate-pulse" /> Syncing...</>
+                  ) : (
+                    <><CloudUpload className="w-3.5 h-3.5" /> Sync to cloud</>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
